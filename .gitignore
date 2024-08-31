@@ -1,2 +1,6 @@
 /target
 /android/android
+/ios/xcode/release
+/ios/xcode/debug
+/Cargo.lock
+.DS_Store
