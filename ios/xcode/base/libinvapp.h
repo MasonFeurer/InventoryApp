@@ -8,10 +8,8 @@ struct native_app;
 struct ios_view_obj
 {
     void *view;
-    // CAMetalLayer
-    void *metal_layer;
+    void *metal_layer; // CAMetalLayer
     int maximum_frames;
-    void (*callback_to_swift)(int32_t arg);
     void (*open_keyboard)();
     void (*close_keyboard)();
 };

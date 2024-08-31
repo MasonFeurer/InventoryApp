@@ -1,12 +1,9 @@
 use core_graphics::{base::CGFloat, geometry::CGRect};
 use egui::Context;
 use glam::{uvec2, UVec2};
-use libc::c_void;
 use objc::{runtime::Object, *};
 use std::marker::Sync;
-use std::ptr::NonNull;
 use std::sync::Arc;
-use wgpu::rwh::{UiKitDisplayHandle, UiKitWindowHandle};
 use wgpu::{Adapter, Device, Instance, Queue, Surface, SurfaceConfiguration};
 
 use crate::{CaMetalLayer, UiViewObject};
@@ -20,8 +17,6 @@ unsafe impl Sync for Graphics {}
 
 impl Graphics {
     pub fn new(view: UiViewObject, metal_layer: CaMetalLayer) -> Self {
-        env_logger::init();
-
         let scale_factor = get_scale_factor(view.0);
         let s: CGRect = unsafe { msg_send![view.0, frame] };
         let mut physical = (
@@ -138,7 +133,6 @@ async fn request_device(
         .await
         .expect("No suitable GPU adapters found on the system!");
     let adapter_info = adapter.get_info();
-    println!("Using {} ({:?})", adapter_info.name, adapter_info.backend);
     let res = adapter
         .request_device(
             &wgpu::DeviceDescriptor {

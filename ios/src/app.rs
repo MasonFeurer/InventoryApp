@@ -6,7 +6,7 @@ use crate::ui::{HomePage, Page, TextFieldInfo, UiOutput, UiTheme};
 use std::net::TcpStream;
 use std::time::SystemTime;
 
-use inv_common::{DataVersion, ServerConn, ServerErr};
+use inv_common::{ServerConn, ServerErr};
 use serde::{Deserialize, Serialize};
 
 type Server = ServerConn<TcpStream>;
@@ -177,12 +177,12 @@ impl App {
         self.egui = Some(egui);
 
         if out.focused_text_field.is_some() && self.focused_text_field.is_none() {
-            log::info!("App started wanting text input ;' opening keyboard");
+            log::info!("App started wanting text input ; opening keyboard");
             let info = out.focused_text_field.as_ref().unwrap();
             crate::open_keyboard();
         }
         if out.focused_text_field.is_none() && self.focused_text_field.is_some() {
-            log::info!("App stopped wanting text input ;' closing keyboard");
+            log::info!("App stopped wanting text input ; closing keyboard");
             crate::close_keyboard();
         }
         if tapped_anywhere && out.focused_text_field.is_some() {

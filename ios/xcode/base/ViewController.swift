@@ -28,7 +28,6 @@ class ViewController: UIViewController {
                 view: viewPointer,
                 metal_layer: metalLayer,
                 maximum_frames: Int32(maximumFrames),
-                callback_to_swift: callback_to_swift,
                 open_keyboard: open_keyboard,
                 close_keyboard: close_keyboard
             )
@@ -53,26 +52,10 @@ class ViewController: UIViewController {
 
 func open_keyboard() {
     let rs = ViewController.activeTextField.becomeFirstResponder()
-    DispatchQueue.main.async { print("Tried to open keyboard; response: ", rs) }
+    if !rs {
+        print("[ERROR] Failed to open keyboard")
+    }
 }
 func close_keyboard() {
     ViewController.activeTextField.resignFirstResponder()
-    DispatchQueue.main.async { print("Tried to close keyboard") }
-}
-
-func callback_to_swift(arg: Int32) {
-    DispatchQueue.main.async {
-        switch arg {
-        case 0:
-            print("wgpu canvas created!")
-            break
-        case 1:
-            print("canvas enter frame")
-            break
-            
-        default:
-            break
-        }
-    }
-    
 }

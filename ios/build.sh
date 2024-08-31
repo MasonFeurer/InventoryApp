@@ -23,8 +23,8 @@ case ${RELEASE_MODE} in
     *) : ${LIB_FOLDER:=debug} ;;
 esac
 
-if [ ! -d "xcode/${LIB_FOLDER}/" ]; then
-  mkdir -p "xcode/${LIB_FOLDER}"
+if [ ! -d "xcode/release/" ]; then
+  mkdir -p "xcode/release"
 fi
 
-cp "../target/${TARGET}/${LIB_FOLDER}/libinvapp.a" xcode/${LIB_FOLDER}
+cp "../target/${TARGET}/${LIB_FOLDER}/libinvapp.a" xcode/release

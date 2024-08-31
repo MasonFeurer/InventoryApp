@@ -11,7 +11,9 @@ use glam::vec2;
 use core::ffi::c_void;
 use objc::runtime::Object;
 
+#[repr(transparent)]
 pub struct UiViewObject(pub *mut Object);
+#[repr(transparent)]
 pub struct CaMetalLayer(pub *mut c_void);
 
 #[repr(C)]
@@ -19,13 +21,13 @@ struct CreateAppArgs {
     view: UiViewObject,
     metal_layer: CaMetalLayer,
     maximum_frames: i32,
-    swift_callback: extern "C" fn(u32),
     open_keyboard: extern "C" fn(),
     close_keyboard: extern "C" fn(),
 }
 
 pub static mut OPEN_KEYBOARD: Option<extern "C" fn()> = None;
 pub static mut CLOSE_KEYBOARD: Option<extern "C" fn()> = None;
+
 pub fn open_keyboard() {
     unsafe { OPEN_KEYBOARD.unwrap()() }
 }
@@ -33,13 +35,35 @@ pub fn close_keyboard() {
     unsafe { CLOSE_KEYBOARD.unwrap()() }
 }
 
+struct IosLogger;
+impl log::Log for IosLogger {
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        metadata.level() <= log::Level::Info
+    }
+
+    fn log(&self, record: &log::Record) {
+        if self.enabled(record.metadata()) {
+            println!("[{}] {}", record.level(), record.args());
+        }
+    }
+
+    fn flush(&self) {}
+}
+
 #[no_mangle]
-pub extern "C" fn create_app(args: CreateAppArgs) -> *mut libc::c_void {
+extern "C" fn create_app(args: CreateAppArgs) -> *mut libc::c_void {
     unsafe {
         OPEN_KEYBOARD = Some(args.open_keyboard);
         CLOSE_KEYBOARD = Some(args.close_keyboard);
     }
-    println!("create_app, maximum frames: {}", args.maximum_frames);
+
+    static LOGGER: IosLogger = IosLogger;
+    _ = log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Info));
+
+    log::info!(
+        "Creating native App, maximum frames: {}",
+        args.maximum_frames
+    );
     let app = App::new(Graphics::new(args.view, args.metal_layer));
     Box::into_raw(Box::new(app)) as *mut libc::c_void
 }

@@ -9,7 +9,7 @@ pub use egui::PointerButton as PtrButton;
 #[derive(Default)]
 pub struct InputState(egui::RawInput);
 impl InputState {
-    pub fn on_event(&mut self, mut event: Event) {
+    pub fn on_event(&mut self, event: Event) {
         self.0.events.push(event);
     }
 
@@ -26,19 +26,6 @@ pub struct Zoom {
 
 fn egui_pos(pos: Vec2) -> egui::Pos2 {
     egui::Pos2::new(pos.x / SCALE_FACTOR, pos.y / SCALE_FACTOR)
-}
-fn egui_vec(pos: Vec2) -> egui::Vec2 {
-    egui::Vec2::new(pos.x / SCALE_FACTOR, pos.y / SCALE_FACTOR)
-}
-fn egui_ptr_button(idx: u32) -> egui::PointerButton {
-    match idx {
-        0 => egui::PointerButton::Primary,
-        1 => egui::PointerButton::Secondary,
-        2 => egui::PointerButton::Middle,
-        3 => egui::PointerButton::Extra1,
-        4 => egui::PointerButton::Extra2,
-        _ => egui::PointerButton::Extra2,
-    }
 }
 
 pub struct TouchTranslater {
