@@ -102,7 +102,9 @@ impl<C: Read + Write> ServerHost<C> {
     pub fn handle_client_cmd(&mut self, id: ClientId, cmd: CmdCode) -> std::io::Result<()> {
         let (name, io) = self.clients.get_mut(&id).unwrap();
         match cmd {
-            CmdCode::GetVersion => io.write_all(&[self.version])?,
+            CmdCode::GetVersion => {
+                io.write_all(&[self.version.0, self.version.1, self.version.2])?
+            }
             CmdCode::GetInv => {
                 let bytes = bincode::serialize(&self.inv).unwrap();
                 let len = bytes.len() as u32;
@@ -156,7 +158,7 @@ impl<C: Read + Write> ServerHost<C> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum ServerErr {
     TimedOut,
     OtherIo(std::io::Error),
@@ -182,7 +184,7 @@ impl<T: Read + Write> ServerConn<T> {
         supported_data_ver: DataVersion,
     ) -> Result<Self, ServerErr> {
         eprintln!("ServerConn::connect running");
-        io.write_all(&inv_version.to_be_bytes())?;
+        io.write_all(&supported_data_ver.0.to_be_bytes())?;
         io.write_all(&(name.len() as u32).to_be_bytes())?;
         io.write_all(name.as_bytes())?;
 
@@ -195,25 +197,26 @@ impl<T: Read + Write> ServerConn<T> {
     }
 
     pub fn get_data_version(&mut self) -> Result<DataVersion, ServerErr> {
-        send_code(&mut self.io, CmdCode::GetDataVersion)?;
+        send_code(&mut self.io, CmdCode::GetVersion)?;
 
         let mut buf = [0u8; 1];
         self.io.read_exact(&mut buf)?;
-        Ok(buf[0])
+        Ok(DataVersion(buf[0]))
     }
 
     pub fn get_version(&mut self) -> Result<Version, ServerErr> {
         send_code(&mut self.io, CmdCode::GetVersion)?;
 
-        let mut buf = [0u8; 1];
+        let mut buf = [0u8; 3];
         self.io.read_exact(&mut buf)?;
-        Ok(buf[0])
+        Ok(Version(buf[0], buf[1], buf[2]))
     }
 
     pub fn get_inv(&mut self) -> Result<Inv, ServerErr> {
         // Check inv version first
-        if self.get_inv_version()? != self.inv_version {
-            return Err(ServerErr::IncompatibleVersion);
+        let inv_version = self.get_data_version()?;
+        if inv_version != self.supported_data_ver {
+            return Err(ServerErr::IncompatibleDataVersion(inv_version));
         }
 
         eprintln!("ServerConn::get_inv running");

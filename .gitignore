@@ -1,2 +1,5 @@
 /target
 /android/android
+/ios/xcode/release
+/ios/xcode/debug
+.DS_Store

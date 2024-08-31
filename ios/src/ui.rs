@@ -1,8 +1,7 @@
 use crate::app::App;
-use crate::inv::{to_jano_pic, Id, Inv, Item, Listing, Listings, Platform, Usd};
+use crate::inv::{Id, Inv, Item, Listing, Listings, Platform, Usd};
 
-use jano::egui::{self, Response, ScrollArea, Ui};
-use jano::egui_app::Egui;
+use egui::{self, Response, ScrollArea, Ui};
 use serde::{Deserialize, Serialize};
 
 use std::time::SystemTime;
@@ -189,12 +188,12 @@ impl UiTheme {
 }
 
 pub trait Page {
-    fn on_picture_taken(&mut self, _pic: jano::Picture) {}
+    // fn on_picture_taken(&mut self, _pic: jano::Picture) {}
     fn title(&self) -> String;
     #[rustfmt::skip]
     fn has_back_button(&self) -> bool { true }
     fn show(&mut self, _ui: &mut Ui, _out: &mut UiOutput, _app: &mut App) {}
-    fn show2(&mut self, _ui: &mut Ui, _out: &mut UiOutput, _app: &mut App, _egui: &mut Egui) {}
+    // fn show2(&mut self, _ui: &mut Ui, _out: &mut UiOutput, _app: &mut App, _egui: &mut Egui) {}
 }
 
 #[derive(Default)]
@@ -232,7 +231,7 @@ impl Page for ItemListPage {
     #[rustfmt::skip]
     fn title(&self) -> String { String::from("Items") }
 
-    fn show2(&mut self, ui: &mut Ui, out: &mut UiOutput, app: &mut App, egui: &mut Egui) {
+    fn show(&mut self, ui: &mut Ui, out: &mut UiOutput, app: &mut App) {
         if app.inv.item_count() == 0 {
             ui.heading("No items here.");
             return;
@@ -354,12 +353,12 @@ impl Page for ItemListPage {
                 ui.painter()
                     .rect_stroke(rect, 10.0, egui::Stroke::new(1.0, color));
 
-                if let Some(pic) = &item.picture {
-                    let handle = egui.obtain_tex_handle_for_pic("p", &to_jano_pic(pic.clone()));
-                    let sized_image = egui::load::SizedTexture::new(handle.id(), pic_size2);
-                    let image = egui::Image::from_texture(sized_image).rounding(pic_rounding);
-                    image.paint_at(ui, egui::Rect::from_min_size(rect.min, pic_size2));
-                }
+                // if let Some(pic) = &item.picture {
+                // let handle = egui.obtain_tex_handle_for_pic("p", &to_jano_pic(pic.clone()));
+                // let sized_image = egui::load::SizedTexture::new(handle.id(), pic_size2);
+                // let image = egui::Image::from_texture(sized_image).rounding(pic_rounding);
+                // image.paint_at(ui, egui::Rect::from_min_size(rect.min, pic_size2));
+                // }
 
                 let w = full_w - pic_size;
                 let sections = [w * 0.75, w * 0.10, w * 0.15];
@@ -377,15 +376,15 @@ impl Page for ItemListPage {
                     egui::vec2(sections[2], rect.height()),
                 );
 
-                let mut ui0 = ui.child_ui(rect0, ui.layout().clone());
+                let mut ui0 = ui.child_ui(rect0, ui.layout().clone(), None);
                 ui0.set_clip_rect(rect0.intersect(ui.clip_rect()));
                 ui0.label(&item.name);
 
-                let mut ui1 = ui.child_ui(rect1, ui.layout().clone());
+                let mut ui1 = ui.child_ui(rect1, ui.layout().clone(), None);
                 ui1.set_clip_rect(rect1.intersect(ui.clip_rect()));
                 ui1.label(&format!("{}", item.count));
 
-                let mut ui2 = ui.child_ui(rect2, ui.layout().clone());
+                let mut ui2 = ui.child_ui(rect2, ui.layout().clone(), None);
                 ui2.set_clip_rect(rect2.intersect(ui.clip_rect()));
                 ui2.label(&format!("${}", item.est_cost));
 
@@ -403,7 +402,7 @@ impl Page for ItemDetailsPage {
     #[rustfmt::skip]
     fn title(&self) -> String { format!("Item Details - {}", self.0.0) }
 
-    fn show2(&mut self, ui: &mut Ui, out: &mut UiOutput, app: &mut App, egui: &mut Egui) {
+    fn show(&mut self, ui: &mut Ui, out: &mut UiOutput, app: &mut App) {
         let id = self.0;
         let pic_size = egui::vec2(50.0, 50.0);
         let pic_rounding = 10.0;
@@ -413,25 +412,25 @@ impl Page for ItemDetailsPage {
                 return;
             };
 
-            let _pic_rs = match &item.picture {
-                Some(pic) => {
-                    let handle = egui.obtain_tex_handle_for_pic("p", &to_jano_pic(pic.clone()));
-                    let sized_image = egui::load::SizedTexture::new(handle.id(), pic_size);
-                    let image = egui::Image::from_texture(sized_image);
-                    ui.add(image.sense(egui::Sense::click()).rounding(pic_rounding))
-                }
-                None => {
-                    let (rect, response) = ui.allocate_exact_size(pic_size, egui::Sense::click());
-                    if ui.is_rect_visible(rect) {
-                        ui.painter().rect_stroke(
-                            rect,
-                            pic_rounding,
-                            egui::Stroke::new(2.0, egui::Color32::GRAY),
-                        );
-                    }
-                    response
-                }
-            };
+            // let _pic_rs = match &item.picture {
+            //     Some(pic) => {
+            //         // let handle = egui.obtain_tex_handle_for_pic("p", &to_jano_pic(pic.clone()));
+            //         // let sized_image = egui::load::SizedTexture::new(handle.id(), pic_size);
+            //         // let image = egui::Image::from_texture(sized_image);
+            //         // ui.add(image.sense(egui::Sense::click()).rounding(pic_rounding))
+            //     }
+            //     None => {
+            //         let (rect, response) = ui.allocate_exact_size(pic_size, egui::Sense::click());
+            //         if ui.is_rect_visible(rect) {
+            //             ui.painter().rect_stroke(
+            //                 rect,
+            //                 pic_rounding,
+            //                 egui::Stroke::new(2.0, egui::Color32::GRAY),
+            //             );
+            //         }
+            //         response
+            //     }
+            // };
 
             ui.horizontal(|ui| {
                 if ui.button("📋").clicked() {
@@ -469,7 +468,7 @@ impl Page for ItemDetailsPage {
             detail(true, "Dimensions", &format!("{w}x{h}x{l}in",));
             detail(true, "Weight", &format!("{}lb", item.weight));
             #[rustfmt::skip]
-            detail(true, "Shipping Weight", &format!("{}lb", item.shipping_weight));
+        	detail(true, "Shipping Weight", &format!("{}lb", item.shipping_weight));
             detail(true, "Color", &item.color);
             detail(true, "Brand", &item.brand);
             detail(true, "Location", &item.location);
@@ -506,7 +505,7 @@ impl Page for ItemDetailsPage {
 pub struct ItemTemplate {
     location: String,
     listings: Listings,
-    picture: Option<jano::Picture>,
+    // picture: Option<jano::Picture>,
     name: String,
     desc: String,
     count: String,
@@ -525,7 +524,7 @@ impl ItemTemplate {
         Self {
             location: item.location,
             listings: item.listings,
-            picture: item.picture.clone().map(to_jano_pic),
+            // picture: item.picture.clone().map(to_jano_pic),
             name: item.name,
             desc: item.desc,
             count: item.count.to_string(),
@@ -559,7 +558,7 @@ impl ItemTemplate {
 
         item.location = self.location.clone();
         item.listings = self.listings.clone();
-        item.picture = self.picture.clone().map(crate::inv::to_inv_pic);
+        // item.picture = self.picture.clone().map(crate::inv::to_inv_pic);
         item.name = self.name.clone();
         item.desc = self.desc.clone();
         item.condition = self.condition.clone();
@@ -586,7 +585,8 @@ pub fn display_date(mut date: SystemTime) -> String {
         return format!("{} seconds ago", dur.whole_seconds());
     }
 
-    let utc_offset = jano::local_utc_offset().unwrap();
+    // TOOD FIXME
+    let utc_offset = 0;
     if utc_offset < 0 {
         date -= std::time::Duration::from_secs((-utc_offset) as u64);
     } else {
@@ -625,16 +625,16 @@ impl EditItemPage {
     }
 }
 impl Page for EditItemPage {
-    fn on_picture_taken(&mut self, pic: jano::Picture) {
-        self.template.picture = Some(pic)
-    }
+    // fn on_picture_taken(&mut self, pic: jano::Picture) {
+    //     self.template.picture = Some(pic)
+    // }
 
     #[rustfmt::skip]
     fn title(&self) -> String { format!("Edit Item - {}", self.id.0) }
 
     #[rustfmt::skip]
     fn has_back_button(&self) -> bool { false }
-    fn show2(&mut self, ui: &mut Ui, out: &mut UiOutput, app: &mut App, egui: &mut Egui) {
+    fn show(&mut self, ui: &mut Ui, out: &mut UiOutput, app: &mut App) {
         #[rustfmt::skip]
         let Self { id, template: item, .. } = self;
 
@@ -678,41 +678,41 @@ impl Page for EditItemPage {
             ui.horizontal(|ui| {
                 let pic_size = egui::vec2(85.0, 85.0);
                 let pic_rounding = 20.0;
-                let pic_rs = match &item.picture {
-                    Some(pic) => {
-                        let handle = egui.obtain_tex_handle_for_pic("p", pic);
-                        let sized_image = egui::load::SizedTexture::new(handle.id(), pic_size);
-                        let image = egui::Image::from_texture(sized_image);
-                        ui.add(image.sense(egui::Sense::click()).rounding(pic_rounding))
-                    }
-                    None => {
-                        let (rect, response) =
-                            ui.allocate_exact_size(pic_size, egui::Sense::click());
-                        if ui.is_rect_visible(rect) {
-                            ui.painter().rect_stroke(
-                                rect,
-                                pic_rounding,
-                                egui::Stroke::new(2.0, egui::Color32::GRAY),
-                            );
-                        }
-                        response
-                    }
-                };
-                self.pic_options ^= pic_rs.clicked;
+                // let pic_rs = match &item.picture {
+                //     Some(pic) => {
+                //         let handle = egui.obtain_tex_handle_for_pic("p", pic);
+                //         let sized_image = egui::load::SizedTexture::new(handle.id(), pic_size);
+                //         let image = egui::Image::from_texture(sized_image);
+                //         ui.add(image.sense(egui::Sense::click()).rounding(pic_rounding))
+                //     }
+                //     None => {
+                //         let (rect, response) =
+                //             ui.allocate_exact_size(pic_size, egui::Sense::click());
+                //         if ui.is_rect_visible(rect) {
+                //             ui.painter().rect_stroke(
+                //                 rect,
+                //                 pic_rounding,
+                //                 egui::Stroke::new(2.0, egui::Color32::GRAY),
+                //             );
+                //         }
+                //         response
+                //     }
+                // };
+                // self.pic_options ^= pic_rs.clicked;
             });
 
             if self.pic_options {
                 ui.horizontal(|ui| {
                     ui.label("|");
-                    if ui.button("retake").clicked {
-                        if let Err(err) = jano::take_picture() {
-                            app.msg_popup = Some((SystemTime::now(), format!("{err:?}")));
-                        }
-                        self.pic_options = false;
-                    }
-                    if ui.button("remove").clicked {
-                        item.picture = None;
-                    }
+                    // if ui.button("retake").clicked {
+                    //     if let Err(err) = jano::take_picture() {
+                    //         app.msg_popup = Some((SystemTime::now(), format!("{err:?}")));
+                    //     }
+                    //     self.pic_options = false;
+                    // }
+                    // if ui.button("remove").clicked {
+                    //     // item.picture = None;
+                    // }
                 });
             }
 
@@ -834,7 +834,7 @@ impl Page for SettingsPage {
             if ui.button("+").clicked && app.settings.scale < 5.0 {
                 app.settings.scale += 0.5;
             }
-            jano::input::set_scale_factor(app.settings.scale);
+            // jano::input::set_scale_factor(app.settings.scale);
         });
         ui.horizontal(|ui| {
             ui.label("Server address: ");

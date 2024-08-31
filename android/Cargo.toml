@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [jano]
-icon = "./icon.png"
+icon = "../icon.png"
 name = "Inventory"
 app_id = "com.inv.android"
 version = "0.1.0"
@@ -15,9 +15,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 jano = { git = "https://github.com/MasonFeurer/Jano.git", features = ["egui", "serde"] }
-# jano = { path = "../../jano/jano", features = ["egui", "serde"] }
 inv-common = { path = "../common" }
-catppuccin-egui = { version = "5.1", default-features = false, features = ["egui27"] }
 pollster = "0.3"
 bincode = "1.3.3"
 image = { version = "0.24.7", features = ["png"] }

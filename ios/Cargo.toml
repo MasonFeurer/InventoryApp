@@ -1,0 +1,30 @@
+[package]
+name = "invapp"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "invapp"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+inv-common = { path = "../common" }
+
+egui = "0.28.1"
+wgpu = "0.20.0"
+glam = { version = "0.29", features = ["serde"] }
+image = { version = "0.24.7", features = ["png"] }
+time = { version = "0.3.36", features = ["std", "local-offset"] }
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.3.3"
+
+pollster = "0.3"
+fastrand = "2.1"
+raw-window-handle = "0.6.2"
+log = "0.4"
+
+env_logger = "0.11.3"
+libc = "0.2.155"
+objc = "0.2.7"
+core-graphics = "0.23.2"
+egui-wgpu = "0.28.1"
