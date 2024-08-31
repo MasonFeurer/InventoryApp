@@ -84,6 +84,9 @@ impl LocalInv {
 
     pub fn remove_item(&mut self, id: &Id) {
         self.inv.items.remove(id);
-        self.deleted_items.insert(*id);
+        self.modified_items.remove(id);
+        if !self.added_items.remove(id) {
+            self.deleted_items.insert(*id);
+        }
     }
 }

@@ -9,7 +9,7 @@ use std::path::PathBuf;
 #[no_mangle]
 fn android_main(android: AndroidApp) {
     jano::init_android(android.clone());
-    jano::android_main::<EguiAppState<App>>(android, EguiAppState::new(App::default()));
+    jano::android_main::<EguiAppState<App>>(android, EguiAppState::new(App::default()), 60);
 }
 
 struct SaveDirs {

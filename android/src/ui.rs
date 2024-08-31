@@ -227,6 +227,7 @@ pub struct ItemListPage {
     pub sort: ItemSort,
     pub sort_dir: SortDir,
     pub search: String,
+    pub scroll_offset: f32,
 }
 impl Page for ItemListPage {
     #[rustfmt::skip]
@@ -339,62 +340,69 @@ impl Page for ItemListPage {
             }
         }
 
-        ScrollArea::vertical().show(ui, |ui| {
-            for (id, item) in items {
-                let pic_size = 50.0;
-                let pic_rounding = 10.0;
-                let pic_size2 = egui::vec2(pic_size, pic_size);
+        let rs = ScrollArea::vertical()
+            .vertical_scroll_offset(self.scroll_offset)
+            .show(ui, |ui| {
+                for (id, item) in items {
+                    let pic_size = 50.0;
+                    let pic_rounding = 10.0;
+                    let pic_size2 = egui::vec2(pic_size, pic_size);
 
-                let full_w = ui.available_width();
+                    let full_w = ui.available_width();
 
-                let (rect, rs) =
-                    ui.allocate_exact_size(egui::vec2(full_w, pic_size), egui::Sense::click());
+                    let (rect, rs) =
+                        ui.allocate_exact_size(egui::vec2(full_w, pic_size), egui::Sense::click());
 
-                let color = ui.visuals().widgets.inactive.bg_stroke.color;
-                ui.painter()
-                    .rect_stroke(rect, 10.0, egui::Stroke::new(1.0, color));
+                    let color = ui.visuals().widgets.inactive.bg_stroke.color;
+                    ui.painter()
+                        .rect_stroke(rect, 10.0, egui::Stroke::new(1.0, color));
 
-                if let Some(pic) = &item.picture {
-                    let handle = egui.obtain_tex_handle_for_pic("p", &to_jano_pic(pic.clone()));
-                    let sized_image = egui::load::SizedTexture::new(handle.id(), pic_size2);
-                    let image = egui::Image::from_texture(sized_image).rounding(pic_rounding);
-                    image.paint_at(ui, egui::Rect::from_min_size(rect.min, pic_size2));
+                    if let Some(pic) = &item.picture {
+                        let handle = egui.obtain_tex_handle_for_pic(
+                            egui::Id::new(id.0),
+                            &to_jano_pic(pic.clone()),
+                        );
+                        let sized_image = egui::load::SizedTexture::new(handle.id(), pic_size2);
+                        let image = egui::Image::from_texture(sized_image).rounding(pic_rounding);
+                        image.paint_at(ui, egui::Rect::from_min_size(rect.min, pic_size2));
+                    }
+
+                    let w = full_w - pic_size;
+                    let sections = [w * 0.75, w * 0.10, w * 0.15];
+
+                    let rect0 = egui::Rect::from_min_size(
+                        egui::pos2(rect.min.x + pic_size, rect.min.y),
+                        egui::vec2(sections[0], rect.height()),
+                    );
+                    let rect1 = egui::Rect::from_min_size(
+                        egui::pos2(rect0.max.x, rect.min.y),
+                        egui::vec2(sections[1], rect.height()),
+                    );
+                    let rect2 = egui::Rect::from_min_size(
+                        egui::pos2(rect1.max.x, rect.min.y),
+                        egui::vec2(sections[2], rect.height()),
+                    );
+
+                    let mut ui0 = ui.child_ui(rect0, ui.layout().clone(), None);
+                    ui0.set_clip_rect(rect0.intersect(ui.clip_rect()));
+                    ui0.add_enabled(false, egui::Label::new(&item.name));
+                    // ui0.label(&item.name);
+
+                    let mut ui1 = ui.child_ui(rect1, ui.layout().clone(), None);
+                    ui1.set_clip_rect(rect1.intersect(ui.clip_rect()));
+                    ui1.label(&format!("{}", item.count));
+
+                    let mut ui2 = ui.child_ui(rect2, ui.layout().clone(), None);
+                    ui2.set_clip_rect(rect2.intersect(ui.clip_rect()));
+                    ui2.label(&format!("${}", item.est_cost));
+
+                    if rs.clicked {
+                        out.push_page = Some(Box::new(ItemDetailsPage(*id)));
+                    }
+                    ui.add_space(1.0);
                 }
-
-                let w = full_w - pic_size;
-                let sections = [w * 0.75, w * 0.10, w * 0.15];
-
-                let rect0 = egui::Rect::from_min_size(
-                    egui::pos2(rect.min.x + pic_size, rect.min.y),
-                    egui::vec2(sections[0], rect.height()),
-                );
-                let rect1 = egui::Rect::from_min_size(
-                    egui::pos2(rect0.max.x, rect.min.y),
-                    egui::vec2(sections[1], rect.height()),
-                );
-                let rect2 = egui::Rect::from_min_size(
-                    egui::pos2(rect1.max.x, rect.min.y),
-                    egui::vec2(sections[2], rect.height()),
-                );
-
-                let mut ui0 = ui.child_ui(rect0, ui.layout().clone());
-                ui0.set_clip_rect(rect0.intersect(ui.clip_rect()));
-                ui0.label(&item.name);
-
-                let mut ui1 = ui.child_ui(rect1, ui.layout().clone());
-                ui1.set_clip_rect(rect1.intersect(ui.clip_rect()));
-                ui1.label(&format!("{}", item.count));
-
-                let mut ui2 = ui.child_ui(rect2, ui.layout().clone());
-                ui2.set_clip_rect(rect2.intersect(ui.clip_rect()));
-                ui2.label(&format!("${}", item.est_cost));
-
-                if rs.clicked {
-                    out.push_page = Some(Box::new(ItemDetailsPage(*id)));
-                }
-                ui.add_space(1.0);
-            }
-        });
+            });
+        self.scroll_offset = rs.state.offset.y;
     }
 }
 
@@ -415,7 +423,8 @@ impl Page for ItemDetailsPage {
 
             let _pic_rs = match &item.picture {
                 Some(pic) => {
-                    let handle = egui.obtain_tex_handle_for_pic("p", &to_jano_pic(pic.clone()));
+                    let handle = egui
+                        .obtain_tex_handle_for_pic(egui::Id::new(id.0), &to_jano_pic(pic.clone()));
                     let sized_image = egui::load::SizedTexture::new(handle.id(), pic_size);
                     let image = egui::Image::from_texture(sized_image);
                     ui.add(image.sense(egui::Sense::click()).rounding(pic_rounding))
@@ -637,6 +646,7 @@ impl Page for EditItemPage {
     fn show2(&mut self, ui: &mut Ui, out: &mut UiOutput, app: &mut App, egui: &mut Egui) {
         #[rustfmt::skip]
         let Self { id, template: item, .. } = self;
+        let id = *id;
 
         fn add_field(ui: &mut Ui, out: &mut UiOutput, label: &str, value: &mut String, w: f32) {
             ui.style_mut().spacing.text_edit_width = w;
@@ -680,7 +690,7 @@ impl Page for EditItemPage {
                 let pic_rounding = 20.0;
                 let pic_rs = match &item.picture {
                     Some(pic) => {
-                        let handle = egui.obtain_tex_handle_for_pic("p", pic);
+                        let handle = egui.obtain_tex_handle_for_pic(egui::Id::new(id.0), pic);
                         let sized_image = egui::load::SizedTexture::new(handle.id(), pic_size);
                         let image = egui::Image::from_texture(sized_image);
                         ui.add(image.sense(egui::Sense::click()).rounding(pic_rounding))
@@ -706,7 +716,7 @@ impl Page for EditItemPage {
                     ui.label("|");
                     if ui.button("retake").clicked {
                         if let Err(err) = jano::take_picture() {
-                            app.msg_popup = Some((SystemTime::now(), format!("{err:?}")));
+                            app.msg_popup(format!("{err:?}"));
                         }
                         self.pic_options = false;
                     }
@@ -773,36 +783,35 @@ impl Page for EditItemPage {
                 }
             }
 
-            ui.add_space(400.0);
             ui.separator();
-        });
-
-        // ui.separator();
-        let id = *id;
-        ui.horizontal(|ui| {
-            ui.menu_button("Delete", |ui| {
-                ui.label("Are you sure? ");
-                if ui.button("Yes").clicked() {
-                    ui.close_menu();
-                    app.inv.remove_item(&id);
-                    out.pop_page = true;
-                }
-                if ui.button("Cancel").clicked() {
-                    ui.close_menu();
-                }
-            });
-            if ui.button("Save").clicked {
-                match self.template.as_item() {
-                    Ok(item) => {
-                        app.inv.insert_item(self.id, item);
+            ui.horizontal(|ui| {
+                ui.menu_button("Delete", |ui| {
+                    ui.label("Are you sure? ");
+                    if ui.button("Yes").clicked() {
+                        ui.close_menu();
+                        app.inv.remove_item(&id);
                         out.pop_page = true;
                     }
-                    Err(err) => app.msg_popup = Some((SystemTime::now(), format!("Invalid {err}"))),
+                    if ui.button("Cancel").clicked() {
+                        ui.close_menu();
+                    }
+                });
+                if ui.button("Save").clicked {
+                    match item.as_item() {
+                        Ok(item) => {
+                            app.inv.insert_item(self.id, item);
+                            out.pop_page = true;
+                        }
+                        Err(err) => {
+                            app.msg_popup(format!("Invalid {err}"));
+                        }
+                    }
                 }
-            }
-            if ui.button("Cancel").clicked {
-                out.pop_page = true;
-            }
+                if ui.button("Cancel").clicked {
+                    out.pop_page = true;
+                }
+            });
+            ui.add_space(400.0);
         });
     }
 }

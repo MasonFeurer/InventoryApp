@@ -7,9 +7,8 @@ use jano::egui_app::Egui;
 use jano::TcpStream;
 use jano::{android, egui, log, set_keyboard_visibility, FrameStats};
 use serde::{Deserialize, Serialize};
-use std::time::SystemTime;
 
-use inv_common::ServerConn;
+use inv_common::{ServerConn, ServerErr};
 
 type Server = ServerConn<TcpStream>;
 
@@ -36,7 +35,6 @@ impl Default for Settings {
 pub struct App {
     save_dirs: SaveDirs,
     server: Option<Server>,
-    pub msg_popup: Option<(SystemTime, String)>,
     pub focused_text_field: Option<TextFieldInfo>,
     pub settings: Settings,
     pub inv: LocalInv,
@@ -47,7 +45,6 @@ impl Default for App {
         Self {
             save_dirs: SaveDirs::new(),
             server: None,
-            msg_popup: None,
             focused_text_field: None,
             settings: Default::default(),
             inv: Default::default(),
@@ -56,16 +53,24 @@ impl Default for App {
     }
 }
 impl App {
-    pub fn sync_server(&mut self, download: bool) {
-        if let Err(err) = self.try_sync_server(download) {
-            self.msg_popup = Some((
-                SystemTime::now(),
-                format!("Failed to sync server : {:?}", err.kind()),
-            ));
-            self.server = None;
+    pub fn msg_popup(&mut self, msg: impl Into<String>) {
+        if let Err(err) = jano::show_toast(msg, true) {
+            eprintln!("Failed to show toast: {err:?}");
         }
     }
-    pub fn try_sync_server(&mut self, download: bool) -> std::io::Result<()> {
+
+    pub fn sync_server(&mut self, download: bool) {
+        if self.server.is_none() {
+            return;
+        }
+        if let Err(err) = self.try_sync_server(download) {
+            self.msg_popup(format!("Failed to sync server : {}", err));
+            self.server = None;
+        } else {
+            self.msg_popup("Successfully synced with server");
+        }
+    }
+    pub fn try_sync_server(&mut self, download: bool) -> Result<(), ServerErr> {
         let Some(server) = &mut self.server else {
             return Ok(());
         };
@@ -75,9 +80,9 @@ impl App {
             match change {
                 InvChange::AddedItem(id) | InvChange::ModifiedItem(id) => {
                     let item = self.inv.get_item(&id).unwrap();
-                    server.insert_item(id, item)?
+                    server.insert_item(id, item).map_err(ServerErr::OtherIo)?
                 }
-                InvChange::DeletedItem(id) => server.remove_item(id)?,
+                InvChange::DeletedItem(id) => server.remove_item(id).map_err(ServerErr::OtherIo)?,
             };
         }
 
@@ -88,7 +93,7 @@ impl App {
         Ok(())
     }
 
-    pub fn try_connect_to_server(&self) -> std::io::Result<Server> {
+    pub fn try_connect_to_server(&self) -> Result<Server, ServerErr> {
         let stream = TcpStream::connect_timeout(
             &std::net::SocketAddr::from((
                 self.settings
@@ -99,18 +104,18 @@ impl App {
             )),
             std::time::Duration::from_secs(5),
         )?;
-        stream.set_read_timeout(Some(std::time::Duration::from_secs(1)))?;
-        Server::connect(stream, &self.settings.name, inv_common::INV_VERSION)
+        stream.set_read_timeout(Some(std::time::Duration::from_secs(3)))?;
+        Server::connect(stream, &self.settings.name)
     }
 
     pub fn connect_to_server(&mut self) {
         match self.try_connect_to_server() {
-            Ok(server) => self.server = Some(server),
+            Ok(server) => {
+                self.server = Some(server);
+                self.msg_popup("Successfully connected to server");
+            }
             Err(err) => {
-                self.msg_popup = Some((
-                    SystemTime::now(),
-                    format!("Failed to connect to server : {:?}", err.kind()),
-                ));
+                self.msg_popup(format!("Failed to connect to server : {}", err));
                 self.server = None;
             }
         }
@@ -171,7 +176,7 @@ impl jano::egui_app::EguiApp for App {
             log::info!("App started wanting text input ;' opening keyboard");
             let info = out.focused_text_field.as_ref().unwrap();
             if let Err(err) = set_keyboard_visibility(true) {
-                self.msg_popup = Some((SystemTime::now(), format!("{err:?}")));
+                self.msg_popup(format!("{err:?}"));
             }
             android().set_text_input_state(TextInputState {
                 text: info.text.clone(),
@@ -188,7 +193,7 @@ impl jano::egui_app::EguiApp for App {
         if out.focused_text_field.is_none() && self.focused_text_field.is_some() {
             log::info!("App stopped wanting text input ;' closing keyboard");
             if let Err(err) = set_keyboard_visibility(false) {
-                self.msg_popup = Some((SystemTime::now(), format!("{err:?}")));
+                self.msg_popup(format!("{err:?}"));
             }
         }
         if ctx.input(|input| {
@@ -201,7 +206,7 @@ impl jano::egui_app::EguiApp for App {
             // if we've tapped the screen this frame and there is a text field focused, open keyboard.
             // This is in case the user has closed the keyboard with the back button
             if let Err(err) = set_keyboard_visibility(true) {
-                self.msg_popup = Some((SystemTime::now(), format!("{err:?}")));
+                self.msg_popup(format!("{err:?}"));
             }
         }
         self.focused_text_field = out.focused_text_field;
@@ -243,12 +248,6 @@ impl App {
             });
         });
         egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
-            if let Some((time, msg)) = &self.msg_popup {
-                if SystemTime::now().duration_since(*time).unwrap().as_secs() < 5 {
-                    ui.label(msg);
-                    ui.separator();
-                }
-            }
             if self.server.is_none() {
                 ui.horizontal(|ui| {
                     ui.label("Failed to connect to server");

@@ -1,4 +1,4 @@
-use inv_common::{inv::Inv, CmdCode, ServerHost, Version};
+use inv_common::{inv::Inv, CmdCode, ServerHost};
 
 use std::collections::HashSet;
 use std::io::{Read, Write};
@@ -48,8 +48,6 @@ fn tui(save_path: &str, server: Server) {
         }
     }
 }
-
-const INV_VERSION: Version = 1;
 
 fn check_clients(server: &mut ServerHost<TcpStream>) {
     let mut disconnect_clients = HashSet::new();
@@ -111,7 +109,7 @@ fn main() -> std::io::Result<()> {
         }
     }
 
-    let server = Arc::new(RwLock::new(ServerHost::new(INV_VERSION, inv)));
+    let server = Arc::new(RwLock::new(ServerHost::new(inv)));
 
     let save_path_clone = save_path.clone();
     let server0 = server.clone();
